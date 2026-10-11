@@ -35,7 +35,7 @@ The site defaults to English. The header's **EN / 中文** selector switches the
 
 The site identity and package name are **FinalCheat** and **finalcheat-site**. The public site remains `https://finalcheat.github.io/`.
 
-The current remote is `Finalcheat/finalcheat.github.com`. If renaming the remote during publication, use the standard user-site name **finalcheat.github.io** to preserve the root user-site address. Repository rename and Pages configuration changes are separate publication steps after review.
+The remote repository is [Finalcheat/finalcheat.github.io](https://github.com/Finalcheat/finalcheat.github.io). Its name follows GitHub Pages' user-site convention, so the site is published at the root address above. The local checkout remains `finalcheat-site`.
 
 GitHub Pages can serve the generated files directly from the root of the existing `master` branch. `.nojekyll` keeps the output as static files. Run the build and check scripts before committing approved changes.
 
