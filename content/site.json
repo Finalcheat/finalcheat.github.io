@@ -1,0 +1,20 @@
+{
+  "name": "FinalCheat",
+  "url": "https://finalcheat.github.io/",
+  "project": "https://github.com/Finalcheat/vitacheat-overlay",
+  "releases": "https://github.com/Finalcheat/vitacheat-overlay/releases",
+  "version": "0.8.50",
+  "legacy": {
+    "baidu": "https://pan.baidu.com/s/16DG6OGESpNvR921rMWGiSg",
+    "drive": "https://drive.google.com/drive/folders/1oEt4hLHQ-QQy1PDFhKw6mzlYp3sh1hss"
+  },
+  "manual": {
+    "title": "PSVITACHEAT 代码文件手册 · v360.z04 Beta",
+    "date": "2017-09-10",
+    "pages": 20,
+    "pdf": "assets/documents/vitacheat-code-reference-z04-zh.pdf",
+    "source": "https://drive.google.com/file/d/1kIx3mdJn93RdBFPTY-5zV7UsFuR1Z1oO/view",
+    "sha256": "bc4659e09588e0f3da7acad3dc96e10d526d9870c934b5b2bfa43eb197048669",
+    "password": "psvitacheat"
+  }
+}

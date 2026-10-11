@@ -1,0 +1,617 @@
+{
+  "sections": [
+    {
+      "id": "file",
+      "number": "01",
+      "title": "Cheatfile structure",
+      "signature": ".psv",
+      "group": "Basics",
+      "pages": "Manual p. 3",
+      "intro": [
+        "Name the file after the game's Title ID, for example `PCSH00297.psv`, and place it in `ux0:vitacheat/db/`. Check the Title ID and version in `sce_sys/param.sfo`.",
+        "A file contains game information, entry names, and code lines. Consecutive code lines under one entry form a single cheat."
+      ],
+      "syntax": null,
+      "fields": [
+        [
+          "#",
+          "Game information or comment",
+          "Include the Title ID, game name, and version."
+        ],
+        [
+          "_V0 name",
+          "Entry OFF by default",
+          "This is the original VitaCheat file meaning."
+        ],
+        [
+          "_V1 name",
+          "Entry ON by default",
+          "Overlay reads the flag but never automatically enables it in a new session."
+        ],
+        [
+          "$",
+          "Start of a code line",
+          "Followed by the operation, address, and value fields."
+        ]
+      ],
+      "notes": [
+        "Z06 uses UTF-8. The old manual's ANSI requirement belongs to Z04. Overlay supports UTF-8 and GBK.",
+        "Example addresses explain the format; they are not universal cheats. The Title ID, game version, and actual memory layout must match."
+      ],
+      "examples": [
+        {
+          "title": "Example file",
+          "code": "# PCSH00297 Ys VIII CHT 1.02\n_V0 EXTRA MAX\n$A100 8124D8C6 0000BF00\n_V1 SP Max\n$3201 8148A1F0 00048240\n$3300 00000000 00002710",
+          "text": "Start each entry with `_V0` or `_V1`. The following `$` lines belong to that entry.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "layout",
+      "number": "02",
+      "title": "Anatomy of a code line",
+      "signature": "$AAAA BBBBBBBB CCCCCCCC",
+      "group": "Basics",
+      "pages": "Manual p. 4",
+      "intro": [
+        "Separate the three hexadecimal fields with spaces. `AAAA` has four digits; the other fields have eight each. Pad them even when writing only one byte.",
+        "The opcode determines what each field means. A copy uses the third field as a source address; a compressed write uses a parameter line for count and strides."
+      ],
+      "syntax": "$AAAA BBBBBBBB CCCCCCCC",
+      "fields": [
+        [
+          "AAAA",
+          "Operation field",
+          "Code family, width, controlled line count, or pointer depth."
+        ],
+        [
+          "BBBBBBBB",
+          "Address field",
+          "Usually the destination; may also be a base address, mode, or stride."
+        ],
+        [
+          "CCCCCCCC",
+          "Value field",
+          "Usually the value; may also be a source address, offset, or button mask."
+        ],
+        [
+          "X = 0 / 1 / 2",
+          "Common width selector",
+          "8 / 16 / 32 bits. A 32-bit field can also store a floating-point bit pattern."
+        ]
+      ],
+      "notes": [
+        "All numbers are hexadecimal. For example, `0000000A` means decimal 10.",
+        "Encode a 32-bit float as its IEEE 754 bit pattern: `1.0` is `3F800000`. A decimal string in a code is not a floating-point conversion."
+      ],
+      "examples": [
+        {
+          "title": "A 32-bit value",
+          "code": "$0200 81481280 05F5E0FF",
+          "text": "Opcode `0200` is a direct 32-bit write. `05F5E0FF` is decimal 99,999,999.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "write",
+      "number": "03",
+      "title": "Direct writes",
+      "signature": "$0X00",
+      "group": "Data writes",
+      "pages": "Manual p. 5",
+      "intro": [
+        "Write one 8-, 16-, or 32-bit value to a data address. There is no parameter line."
+      ],
+      "syntax": "$0X00 BBBBBBBB CCCCCCCC",
+      "fields": [
+        ["X", "Write width", "`0` = 8 bits; `1` = 16 bits; `2` = 32 bits."],
+        ["00", "Associated lines", "Always 00."],
+        ["BBBBBBBB", "Destination", "The valid memory address to write."],
+        [
+          "CCCCCCCC",
+          "Value",
+          "Use the low 2 hex digits for 8 bits, the low 4 for 16 bits, or all 8 for 32 bits."
+        ]
+      ],
+      "notes": [
+        "Turning an ordinary data entry OFF stops future writes. It does not guarantee restoration of an earlier game value."
+      ],
+      "examples": [
+        {
+          "title": "16-bit write",
+          "code": "_V0 bait 990\n$0100 83823288 000003DE",
+          "text": "Write `0x3DE` (decimal 990) as a 16-bit value at `0x83823288`.",
+          "extra": null
+        },
+        {
+          "title": "32-bit write",
+          "code": "_V1 OR 99999999\n$0200 81481280 05F5E0FF",
+          "text": "Write the 32-bit encoding of decimal 99,999,999 at the destination.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "copy",
+      "number": "04",
+      "title": "Memory copies",
+      "signature": "$5X00",
+      "group": "Data writes",
+      "pages": "Manual p. 6",
+      "intro": [
+        "Read a value from the source and write it to the destination. The third field is an address, not a literal value."
+      ],
+      "syntax": "$5X00 BBBBBBBB CCCCCCCC",
+      "fields": [
+        ["X", "Copy width", "`0` / `1` / `2` select 8 / 16 / 32 bits."],
+        ["00", "Associated lines", "Always 00."],
+        ["BBBBBBBB", "Destination", "The value is written here."],
+        ["CCCCCCCC", "Source", "The value is read here."]
+      ],
+      "notes": [],
+      "examples": [
+        {
+          "title": "16-bit copy",
+          "code": "_V0 Infinite Health\n$5100 821F4FB8 821F4FB6",
+          "text": "Read 16 bits at `0x821F4FB6` and copy them to `0x821F4FB8`.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "compression",
+      "number": "05",
+      "title": "Compressed writes",
+      "signature": "$4X01",
+      "group": "Data writes",
+      "pages": "Manual p. 7",
+      "intro": [
+        "Express repeated writes in two lines. The first supplies the initial address and value; the second supplies the count and both strides. Do not interpret the parameter line as an independent opcode."
+      ],
+      "syntax": "$4X01 BBBBBBBB CCCCCCCC\n$NNNN SSSSSSSS VVVVVVVV",
+      "fields": [
+        ["X", "Write width", "`0` / `1` / `2` select 8 / 16 / 32 bits."],
+        ["01", "Associated lines", "Exactly one parameter line follows."],
+        [
+          "BBBBBBBB / CCCCCCCC",
+          "Initial address / value",
+          "The first write uses these values."
+        ],
+        ["NNNN", "Count", "The hexadecimal number of writes."],
+        [
+          "SSSSSSSS",
+          "Address stride",
+          "The difference between consecutive destinations, in bytes."
+        ],
+        [
+          "VVVVVVVV",
+          "Value stride",
+          "The increment after each write; 0 keeps the same value."
+        ]
+      ],
+      "notes": [],
+      "examples": [
+        {
+          "title": "Four consecutive writes",
+          "code": "_V1 Unlock Galley\n$4101 82CDE530 000000FF\n$0004 00000006 00000001",
+          "text": "Write four 16-bit values. Increase the address by 6 and the value by 1 each time.",
+          "extra": "$0100 82CDE530 000000FF\n$0100 82CDE536 00000100\n$0100 82CDE53C 00000101\n$0100 82CDE542 00000102"
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "pointer",
+      "number": "06",
+      "title": "Pointer writes",
+      "signature": "$3XZZ",
+      "group": "Pointer operations",
+      "pages": "Manual p. 8–9",
+      "intro": [
+        "Read a pointer at the base, add an offset, and repeat at each level. The final destination depends on the pointer values; it is not the sum of all offsets added to the base."
+      ],
+      "syntax": "$3XZZ BBBBBBBB OOOOOOO1\n$3X00 00000000 OOOOOOO2\n…\n$3300 00000000 CCCCCCCC",
+      "fields": [
+        ["X", "Final write width", "`0` / `1` / `2` select 8 / 16 / 32 bits."],
+        [
+          "ZZ",
+          "Pointer depth",
+          "The number of pointer lines, excluding the final `3300` line."
+        ],
+        ["BBBBBBBB", "Base address", "Where the first pointer is read."],
+        [
+          "OOOOOOOn",
+          "Offsets",
+          "Add each offset after reading that level's pointer."
+        ],
+        [
+          "3300",
+          "Final write line",
+          "The second field is 0; the third is the value to write."
+        ]
+      ],
+      "notes": [],
+      "examples": [
+        {
+          "title": "A three-level pointer",
+          "code": "_V1 CP 99,999\n$3203 8632AE30 0000EA20\n$3200 00000000 00000100\n$3200 00000000 000000C4\n$3300 00000000 0001869F",
+          "text": "Read through the chain with offsets `EA20`, `100`, and `C4`, then write decimal 99,999 as a 32-bit value.",
+          "extra": null
+        }
+      ],
+      "blocks": [
+        {
+          "title": "Address resolution",
+          "text": [
+            "`P1 = read32(8632AE30) + EA20`",
+            "`P2 = read32(P1) + 100`",
+            "`destination = read32(P2) + C4`"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pointer-copy",
+      "number": "07",
+      "title": "Pointer copies",
+      "signature": "$8XZZ / $8YZZ",
+      "group": "Pointer operations",
+      "pages": "Manual p. 10–12",
+      "intro": [
+        "Resolve separate destination and source pointer chains, then copy the value between their final addresses. End the two chains with `8800` and `8900`."
+      ],
+      "syntax": "$8XZZ BBBBBBBB OOOOOOO1\n$8X00 00000000 OOOOOOO2\n…\n$8800 00000000 00000000\n$8YZZ DDDDDDDD PPPPPPP1\n$8Y00 00000000 PPPPPPP2\n…\n$8900 00000000 00000000",
+      "fields": [
+        [
+          "X = 0 / 1 / 2",
+          "Destination width",
+          "8 / 16 / 32 bits respectively."
+        ],
+        [
+          "Y = 4 / 5 / 6",
+          "Source width marker",
+          "8 / 16 / 32 bits respectively."
+        ],
+        [
+          "ZZ",
+          "Depth of each chain",
+          "Each chain supplies its depth and offsets."
+        ],
+        [
+          "8800",
+          "End of destination chain",
+          "The second and third fields are both 0."
+        ],
+        [
+          "8900",
+          "End of source chain",
+          "The second and third fields are both 0."
+        ]
+      ],
+      "notes": [
+        "The Z04 manual requires equal depths and widths for both chains. This example follows that rule; do not assume an older restriction defines every later implementation's capabilities."
+      ],
+      "examples": [
+        {
+          "title": "Three-level, 16-bit pointer copy",
+          "code": "_V0 INFINITE MAGIC USAGE\n$8103 8789C5E4 00047E80\n$8100 00000000 00000004\n$8100 00000000 000002E8\n$8800 00000000 00000000\n$8503 8789C5E8 00000010\n$8500 00000000 00000014\n$8500 00000000 000002EC\n$8900 00000000 00000000",
+          "text": "The destination offsets are `47E80 → 4 → 2E8`; the source offsets are `10 → 14 → 2EC`. Copy the final 16-bit value.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "pointer-compression",
+      "number": "08",
+      "title": "Compressed pointer writes",
+      "signature": "$7XYY / $77ZZ",
+      "group": "Pointer operations",
+      "pages": "Manual p. 13–16",
+      "intro": [
+        "Combine a pointer chain with repeated writes. Repetition can change the base, an intermediate level, or the final level; it does not always change only the final destination."
+      ],
+      "syntax": "$7XYY BBBBBBBB OOOOOOO1\n$7X00 00000000 OOOOOOO2\n…\n$77ZZ 00000000 CCCCCCCC\n$NNNN SSSSSSSS VVVVVVVV",
+      "fields": [
+        ["X", "Write width", "`0` / `1` / `2` select 8 / 16 / 32 bits."],
+        [
+          "YY",
+          "Pointer depth",
+          "The number of pointer lines, excluding `77ZZ` and the parameter line."
+        ],
+        [
+          "ZZ",
+          "Level to advance",
+          "`0 ≤ ZZ ≤ YY`: 0 advances the base; YY advances the last level."
+        ],
+        [
+          "CCCCCCCC",
+          "Initial value",
+          "Its width is selected by X in the first line."
+        ],
+        ["NNNN", "Repeat count", "The hexadecimal number of writes."],
+        [
+          "SSSSSSSS / VVVVVVVV",
+          "Address / value strides",
+          "Advance the selected level and increment the write value."
+        ]
+      ],
+      "notes": [],
+      "examples": [
+        {
+          "title": "Repeat at the final level",
+          "code": "_V1 CP 99,999\n$7203 85C0B048 00000100\n$7200 00000000 000000D4\n$7200 00000000 00000008\n$7703 00000000 447A0000\n$0004 00000008 00000000",
+          "text": "A three-level chain with `ZZ=3`. The last offset is `8`, `10`, `18`, then `20` (hexadecimal). Write the same 32-bit value each time.",
+          "extra": null
+        },
+        {
+          "title": "Repeat at the first level",
+          "code": "_V0 ITEM 96+\n$7003 85C0B048 00010100\n$7000 00000000 00000FD4\n$7000 00000000 00000008\n$7701 00000000 00000060\n$0005 00000004 00000001",
+          "text": "A three-level chain with `ZZ=1`. The first offset is `10100`, `10104`, `10108`, `1010C`, then `10110`. Write 8-bit values `60` through `64`, resolving the remaining chain again each time.",
+          "extra": null
+        },
+        {
+          "title": "Repeat at the base",
+          "code": "_V1 TP 9,999\n$7104 82E40F10 00000000\n$7100 00000000 00000E50\n$7100 00000000 00000018\n$7100 00000000 0000000C\n$7700 00000000 0000270F\n$0006 00000010 00000000",
+          "text": "With `ZZ=0`, the bases are `82E40F10`, `82E40F20`, `82E40F30`, `82E40F40`, `82E40F50`, and `82E40F60`. Follow the four-level chain and write 16-bit `270F` each time.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "arm",
+      "number": "09",
+      "title": "Instruction writes",
+      "signature": "$AX00",
+      "group": "Instructions and conditions",
+      "pages": "Manual p. 17",
+      "intro": [
+        "Patch instructions in the text segment. The manual defines 16- and 32-bit writes; choose the address and length for the actual ARM or Thumb instruction boundary."
+      ],
+      "syntax": "$AX00 BBBBBBBB CCCCCCCC",
+      "fields": [
+        ["X = 1 / 2", "Write width", "16 / 32 bits respectively."],
+        ["00", "Associated lines", "Always 00."],
+        ["BBBBBBBB", "Destination", "The instruction address to modify."],
+        [
+          "CCCCCCCC",
+          "Instruction bit pattern",
+          "Use the low 4 hex digits for 16 bits or all 8 for 32 bits."
+        ]
+      ],
+      "notes": [
+        "ARM / Thumb storage here is little-endian. Supply the numeric bit pattern; do not reverse the number again.",
+        "Turning an A patch OFF releases it and restores its saved original bytes. B2 changes the address basis; it is not the restoration mechanism.",
+        "This section retains A100 / A200 as listed in the manual. Consult the relevant project version for additional subtypes."
+      ],
+      "examples": [
+        {
+          "title": "16-bit Thumb NOP",
+          "code": "_V0 EXTRA MAX\n$A100 8114C8A2 0000BF00",
+          "text": "Write halfword `BF00`; its bytes in memory are `00 BF`. This example is a Thumb NOP.",
+          "extra": null
+        },
+        {
+          "title": "32-bit instruction pattern",
+          "code": "_V1 Branch Test\n$A200 81132EA8 BE12F075",
+          "text": "Write numeric value `BE12F075`; the memory bytes are `75 F0 12 BE`. Interpret the instruction using the actual instruction set and address.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "module",
+      "number": "10",
+      "title": "Module-relative addressing",
+      "signature": "$B2XX",
+      "group": "Instructions and conditions",
+      "pages": "Z06 site §4.7",
+      "intro": [
+        "Z06 extends B2 to select a module index and segment. Relative addresses in following codes use that segment's current base, reducing dependence on a fixed load address."
+      ],
+      "syntax": "$B2XX 0000000Y 00000000",
+      "fields": [
+        [
+          "XX",
+          "Module index",
+          "The hexadecimal index in the low two opcode digits. It is not a module UID."
+        ],
+        ["Y = 0", "seg0", "Usually the text segment."],
+        ["Y = 1", "seg1", "Usually the data segment."],
+        ["Final field", "Reserved", "Use `00000000`."]
+      ],
+      "notes": [
+        "Original Z06 dumps record module information in a matching `.txt` file. Dynamic loading/unloading can change indexes; an index is not a stable module identity.",
+        "A module base provides relative positioning, not a guarantee of equal offsets or instructions across different game versions."
+      ],
+      "examples": [
+        {
+          "title": "Module 0, text-segment patch",
+          "code": "_V0 Max Gil After Using\n$B200 00000000 00000000\n$A100 001CD8C4 0000BF00",
+          "text": "Write a 16-bit patch at module 0's seg0 base plus `001CD8C4`.",
+          "extra": null
+        },
+        {
+          "title": "Module 0, repeated data writes",
+          "code": "_V0 All Item 99\n$B200 00000001 00000000\n$4001 00FFF96C 00000063\n$006F 00000001 00000000",
+          "text": "Select seg1, start at relative offset `00FFF96C`, and write 8-bit `63` for `6F` iterations with address stride 1.",
+          "extra": null
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "id": "pad",
+      "number": "11",
+      "title": "Button conditions",
+      "signature": "$C2AA",
+      "group": "Instructions and conditions",
+      "pages": "Manual p. 18",
+      "intro": [
+        "The condition controls the next AA code lines. Combine button values with bitwise OR; for example, L + R is `00000300`."
+      ],
+      "syntax": "$C2AA 0000MMMM CCCCCCCC",
+      "fields": [
+        [
+          "AA",
+          "Controlled line count",
+          "The hexadecimal number of following controlled code lines."
+        ],
+        [
+          "MMMM",
+          "Historical device mode",
+          "The Z04 definitions appear below. This is a version-dependent field."
+        ],
+        [
+          "CCCCCCCC",
+          "Button mask",
+          "Combine individual button values with bitwise OR."
+        ]
+      ],
+      "notes": [
+        "Z04 device modes: 0 no match, 1 Vita, 2 PSTV, 4 DualShock 3, and 8 DualShock 4.",
+        "Z06 / Overlay compare the complete button mask and do not identify the controller through the device field. Holding another button in addition to L + R is not the same combination.",
+        "Count physical code lines, including multiline parameters. Overlay menu input does not trigger game button conditions."
+      ],
+      "examples": [
+        {
+          "title": "Run three lines while holding L + R",
+          "code": "_V0 EXTRA MAX\n$C203 00000001 00000300\n$0100 8109C5E4 00003846\n$0100 8789C5E6 000000BF\n$0200 8789C5E8 07F16307",
+          "text": "Run the next three lines when the button condition matches; otherwise skip the controlled lines.",
+          "extra": null
+        }
+      ],
+      "blocks": [
+        {
+          "title": "Button masks",
+          "columns": ["Button", "Hexadecimal value"],
+          "rows": [
+            ["SELECT", "00000001"],
+            ["START", "00000008"],
+            ["↑ Up", "00000010"],
+            ["→ Right", "00000020"],
+            ["↓ Down", "00000040"],
+            ["← Left", "00000080"],
+            ["L", "00000100"],
+            ["R", "00000200"],
+            ["△ Triangle", "00001000"],
+            ["○ Circle", "00002000"],
+            ["× Cross", "00004000"],
+            ["□ Square", "00008000"],
+            ["No buttons", "00000000"]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "condition",
+      "number": "12",
+      "title": "Memory comparisons",
+      "signature": "$DXAA",
+      "group": "Instructions and conditions",
+      "pages": "Manual p. 19",
+      "intro": [
+        "Read a value and compare it with the supplied value to decide whether the next AA lines run. X selects both the relation and the width, giving 12 combinations."
+      ],
+      "syntax": "$DXAA BBBBBBBB CCCCCCCC",
+      "fields": [
+        ["X", "Relation / width", "Select a combination from the table below."],
+        [
+          "AA",
+          "Controlled line count",
+          "The hexadecimal number of following controlled lines."
+        ],
+        ["BBBBBBBB", "Address to compare", "Where the value is read."],
+        [
+          "CCCCCCCC",
+          "Comparison value",
+          "A hexadecimal value or bit pattern of the selected width."
+        ]
+      ],
+      "notes": [
+        "Z06 / Overlay compare raw values at the selected width. Greater-than and less-than comparisons are unsigned integer comparisons, not floating-point arithmetic.",
+        "A failed condition skips its controlled range; unrelated following codes may still run. Nested counts must respect physical lines and multiline instruction boundaries."
+      ],
+      "examples": [
+        {
+          "title": "Write when a byte equals 5",
+          "code": "_V0 GP999,999,999\n$D001 81504000 00000005\n$0200 81504780 3B9AC9FF",
+          "text": "If the 8-bit value at `81504000` equals 5, write decimal 999,999,999 as 32 bits at `81504780`. The write opcode corrects a typo in the original PDF.",
+          "extra": null
+        }
+      ],
+      "blocks": [
+        {
+          "title": "Comparison selectors",
+          "columns": ["Relation", "8 bits", "16 bits", "32 bits"],
+          "rows": [
+            ["Equal", "X = 0", "X = 1", "X = 2"],
+            ["Not equal", "X = 3", "X = 4", "X = 5"],
+            ["Greater than", "X = 6", "X = 7", "X = 8"],
+            ["Less than", "X = 9", "X = A", "X = B"]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "versions",
+      "number": "13",
+      "title": "Version differences and errata",
+      "signature": "Z04 → Z06 → Overlay",
+      "group": "Version notes",
+      "pages": "Manual and Z06 updates",
+      "intro": [
+        "This guide covers the original PDF's file structure, line layout, and all nine code families, plus the Z06 B2 update. Page references use the printed manual numbering; the PDF page index is one greater."
+      ],
+      "syntax": null,
+      "fields": [
+        [
+          "Encoding",
+          "Z04 → Z06",
+          "ANSI belongs to Z04. The Z06 site specifies UTF-8; Overlay supports UTF-8 / GBK."
+        ],
+        [
+          "Automatic enabling",
+          "Original → Overlay",
+          "Original `_V1` starts ON. New Overlay sessions start with every entry OFF."
+        ],
+        [
+          "Capacity",
+          "Version-specific",
+          "The PDF mentions 50 descriptions / 200 lines. The Z06 site specifies 50 groups with up to 200 lines each. Overlay uses separate limits."
+        ],
+        [
+          "B2",
+          "Z06 addition",
+          "The module index is XX; the second field's Y selects the segment. Do not exchange them."
+        ],
+        [
+          "Pointer copies",
+          "Z04 restriction",
+          "The manual requires equal chain depths and widths; this alone does not define later implementations."
+        ],
+        [
+          "Device mode",
+          "Z04 table and later behavior",
+          "Keep the old mode table as a reference. Z06 / Overlay match the complete button mask."
+        ]
+      ],
+      "notes": [
+        "The text-segment examples mix numeric bit patterns with byte order. This guide uses little-endian interpretation: `BF00` produces bytes `00 BF`; the value is not reversed again.",
+        "The condition example's `$2000` conflicts with the direct-write format. It is explicitly corrected to `$0200` here.",
+        "The third compressed-pointer example has a base-address mismatch in its comment. This guide follows `82E40F10` in the code rather than the stale comment.",
+        "This is a format reference. Older firmware requirements, group limits, or search features are not applied to VitaCheat Overlay."
+      ],
+      "examples": [],
+      "blocks": []
+    }
+  ]
+}

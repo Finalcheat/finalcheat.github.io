@@ -1,0 +1,15 @@
+{
+  "name": "finalcheat-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "FinalCheat — VitaCheat Overlay and the PSVITACHEAT code reference",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "dev": "node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
